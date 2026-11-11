@@ -1,1 +1,28 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import './app/loans/loans.component.css';
+
+:root {
+	color-scheme: light;
+	--ink: #1c2633;
+	--muted: #78838b;
+	--line: #e7e9e5;
+	--paper: #f7f8f5;
+	--white: #fff;
+	--green: #2f7864;
+	--green-dark: #245c4e;
+	--lime: #d3ec8b;
+	--coral: #e78570;
+	--blue: #6a9cbd;
+	font-family: 'DM Sans', sans-serif;
+	color: var(--ink);
+	background: var(--paper);
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select { font: inherit; }
+button { color: inherit; }
+::selection { color: var(--ink); background: var(--lime); }

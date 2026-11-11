@@ -1,0 +1,177 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" [routerLink]="isAdmin ? '/admin' : '/app'" aria-label="Préstamos, inicio">
+      <span class="brand-mark">P</span><span>Préstamos</span>
+    </a>
+    <div class="workspace-label">{{ isAdmin ? 'ADMINISTRACIÓN' : 'MI ESPACIO' }}</div>
+    <nav class="main-nav" aria-label="Navegación principal">
+      <button type="button" class="nav-item" [class.active]="view === 'home'" (click)="setView('home')">
+        <span class="nav-icon">⌂</span>{{ isAdmin ? 'Solicitudes' : 'Resumen' }}
+      </button>
+      <button *ngIf="!isAdmin" type="button" class="nav-item" [class.active]="view === 'new'" (click)="setView('new')">
+        <span class="nav-icon">＋</span>Solicitar préstamo
+      </button>
+      <button type="button" class="nav-item" [class.active]="view === 'applications'" (click)="setView('applications')">
+        <span class="nav-icon">▤</span>{{ isAdmin ? 'Todas las solicitudes' : 'Mis solicitudes' }}
+        <span class="nav-count">{{ applications.length }}</span>
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="support-note"><span class="support-dot"></span><span>Atención disponible<br><strong>Lun a vie · 9:00–18:00</strong></span></div>
+      <div class="profile-button">
+        <span class="avatar">{{ currentUser?.fullName?.charAt(0) || 'U' }}</span>
+        <span class="profile-copy"><strong>{{ currentUser?.fullName }}</strong><small>{{ currentUser?.email }}</small></span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div class="breadcrumb"><span>Préstamos</span><span class="breadcrumb-separator">/</span><strong>{{ pageTitle }}</strong></div>
+      <button class="logout-button" type="button" (click)="logout()">Cerrar sesión</button>
+    </header>
+    <div class="page-content">
+      <div class="page-error" *ngIf="pageError" role="alert">
+        <span>{{ pageError }}</span>
+      </div>
+
+      <section *ngIf="view === 'home'" class="view-section">
+        <div class="welcome-row">
+          <div>
+            <p class="eyebrow">{{ isAdmin ? 'ADMINISTRACIÓN' : 'TU FINANCIACIÓN, MÁS SIMPLE' }}</p>
+            <h1>{{ isAdmin ? 'Solicitudes por revisar' : 'Hola, ' + (currentUser?.fullName || 'bienvenido') }}</h1>
+            <p class="intro-copy">{{ isAdmin ? 'Revisa las solicitudes pendientes y actualiza su estado.' : 'Consulta tus solicitudes o inicia una nueva desde aquí.' }}</p>
+          </div>
+          <button *ngIf="!isAdmin" class="primary-button" type="button" (click)="setView('new')">＋ Nueva solicitud</button>
+        </div>
+
+        <div class="metrics-grid" *ngIf="!isAdmin">
+          <article class="metric-panel balance-panel">
+            <div class="metric-heading"><span>PRÉSTAMOS APROBADOS</span><span class="metric-icon mint">✓</span></div>
+            <strong class="metric-value">{{ activeAmount | currency:'EUR':'symbol':'1.0-0' }}</strong>
+            <div class="metric-foot">Importe total aprobado</div>
+          </article>
+          <article class="metric-panel">
+            <div class="metric-heading"><span>EN REVISIÓN</span><span class="metric-icon coral">◷</span></div>
+            <strong class="metric-value">{{ pendingCount }}</strong>
+            <div class="metric-foot">Solicitudes pendientes</div>
+          </article>
+        </div>
+
+        <div class="section-heading">
+          <div><p class="eyebrow">ACTIVIDAD RECIENTE</p><h2>{{ isAdmin ? 'Bandeja de solicitudes' : 'Tus solicitudes' }}</h2></div>
+          <button class="text-button" type="button" (click)="setView('applications')">Ver todas <span>→</span></button>
+        </div>
+        <div class="loading-state" *ngIf="loadingApplications">Cargando solicitudes...</div>
+        <div class="table-wrap" *ngIf="!loadingApplications && applications.length; else emptyState">
+          <table>
+            <thead>
+              <tr><th>Solicitud</th><th *ngIf="isAdmin">Usuario</th><th>Fecha</th><th>Importe</th><th>Plazo</th><th>Estado</th><th *ngIf="isAdmin">Acciones</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let application of recentApplications">
+                <td><div class="loan-name"><span class="loan-symbol">↗</span><span><strong>{{ application.purpose }}</strong><small>{{ application.id }}</small></span></div></td>
+                <td *ngIf="isAdmin">{{ application.applicantName }}<small class="applicant-email">{{ application.applicantEmail }}</small></td>
+                <td>{{ application.createdAt | date:'d MMM y':'':'es' }}</td>
+                <td class="amount-cell">{{ application.amount | currency:'EUR':'symbol':'1.0-0' }}</td>
+                <td>{{ application.termMonths }} meses</td>
+                <td><span class="status-pill" [ngClass]="statusClass(application.status)"><span></span>{{ statusLabel(application.status) }}</span></td>
+                <td *ngIf="isAdmin">
+                  <div class="row-actions" *ngIf="application.status === 'PENDING'; else resolved">
+                    <button type="button" class="approve-button" [disabled]="processingId !== null" (click)="resolveApplication(application.id, 'APPROVED')">Aprobar</button>
+                    <button type="button" class="reject-button" [disabled]="processingId !== null" (click)="resolveApplication(application.id, 'REJECTED')">Rechazar</button>
+                  </div>
+                  <ng-template #resolved><span class="resolved-label">Revisada</span></ng-template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyState>
+          <div class="empty-state" *ngIf="!loadingApplications">
+            <span class="empty-illustration">＋</span>
+            <h3>{{ isAdmin ? 'No hay solicitudes pendientes' : 'Aún no tienes solicitudes' }}</h3>
+            <p>{{ isAdmin ? 'Las nuevas solicitudes aparecerán aquí.' : 'Envía una solicitud y podrás consultar su estado desde aquí.' }}</p>
+            <button *ngIf="!isAdmin" class="outline-button" type="button" (click)="setView('new')">Solicitar préstamo <span>→</span></button>
+          </div>
+        </ng-template>
+        <div class="bottom-note"><span class="note-icon">i</span><span>El estado de cada solicitud se consulta directamente en el servicio de préstamos.</span></div>
+      </section>
+
+      <section *ngIf="view === 'new' && !isAdmin" class="view-section form-view">
+        <div class="welcome-row form-heading">
+          <div><p class="eyebrow">SOLICITUD EN LÍNEA</p><h1>Solicitar préstamo</h1><p class="intro-copy">Completa los datos para enviar tu solicitud.</p></div>
+        </div>
+        <div class="form-layout">
+          <form class="loan-form" [formGroup]="loanForm" (ngSubmit)="submitApplication()" novalidate>
+            <div class="form-section-title"><span class="form-number">01</span><div><h2>Detalles del préstamo</h2><p>Elige el importe, el plazo y el motivo de la solicitud.</p></div></div>
+            <label class="field-label" for="purpose">Motivo</label>
+            <select id="purpose" formControlName="purpose" [class.invalid-field]="fieldInvalid('purpose')">
+              <option value="" disabled>Selecciona un motivo</option>
+              <option value="Reforma del hogar">Reforma del hogar</option>
+              <option value="Coche o movilidad">Coche o movilidad</option>
+              <option value="Estudios y formación">Estudios y formación</option>
+              <option value="Viaje">Viaje</option>
+              <option value="Otros proyectos">Otros proyectos</option>
+            </select>
+            <p class="field-error" *ngIf="fieldInvalid('purpose')">Selecciona el motivo de tu solicitud.</p>
+            <div class="field-row">
+              <div>
+                <label class="field-label" for="amount">Importe solicitado</label>
+                <div class="input-with-suffix"><span class="input-prefix">€</span><input id="amount" type="number" formControlName="amount" min="500" max="25000" step="100" [class.invalid-field]="fieldInvalid('amount')"><span class="input-suffix">EUR</span></div>
+                <p class="field-hint">Desde 500 € hasta 25.000 €</p>
+                <p class="field-error" *ngIf="fieldInvalid('amount')">Introduce un importe entre 500 € y 25.000 €.</p>
+              </div>
+              <div>
+                <label class="field-label" for="term">Plazo de devolución</label>
+                <select id="term" formControlName="term" [class.invalid-field]="fieldInvalid('term')">
+                  <option value="">Selecciona el plazo</option>
+                  <option *ngFor="let term of terms" [value]="term">{{ term }} meses</option>
+                </select>
+                <p class="field-hint">De 6 a 60 meses</p>
+                <p class="field-error" *ngIf="fieldInvalid('term')">Selecciona un plazo válido.</p>
+              </div>
+            </div>
+            <div class="form-divider"></div>
+            <p class="account-note">La solicitud se enviará con los datos de <strong>{{ currentUser?.fullName }}</strong> ({{ currentUser?.email }}).</p>
+            <label class="consent-row"><input type="checkbox" formControlName="consent"><span class="custom-check"></span><span>Confirmo que los datos son correctos y autorizo su uso para gestionar esta solicitud.</span></label>
+            <p class="field-error consent-error" *ngIf="fieldInvalid('consent')">Necesitamos tu autorización para continuar.</p>
+            <div class="form-actions"><button type="button" class="cancel-button" (click)="setView('home')">Cancelar</button><button type="submit" class="primary-button" [disabled]="isSubmitting">{{ isSubmitting ? 'Enviando...' : 'Enviar solicitud' }} <span>→</span></button></div>
+          </form>
+          <aside class="estimate-panel"><p class="eyebrow">INFORMACIÓN</p><h3>¿Qué sigue?</h3><p class="estimate-copy">Después de enviar tu solicitud, podrás consultar su estado en la sección “Mis solicitudes”.</p><div class="estimate-rule"></div><p class="estimate-copy">Un administrador revisará los datos y actualizará el estado cuando finalice la evaluación.</p></aside>
+        </div>
+      </section>
+
+      <section *ngIf="view === 'applications'" class="view-section">
+        <div class="welcome-row">
+          <div><p class="eyebrow">SEGUIMIENTO</p><h1>{{ isAdmin ? 'Todas las solicitudes' : 'Mis solicitudes' }}</h1><p class="intro-copy">Consulta el estado y los detalles de cada solicitud.</p></div>
+          <button *ngIf="!isAdmin" class="primary-button" type="button" (click)="setView('new')">＋ Nueva solicitud</button>
+        </div>
+        <div class="loading-state" *ngIf="loadingApplications">Cargando solicitudes...</div>
+        <div class="table-wrap all-applications" *ngIf="!loadingApplications && applications.length; else noApplications">
+          <table>
+            <thead><tr><th>Solicitud</th><th *ngIf="isAdmin">Usuario</th><th>Fecha</th><th>Importe</th><th>Plazo</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let application of applications">
+                <td><div class="loan-name"><span class="loan-symbol">↗</span><span><strong>{{ application.purpose }}</strong><small>{{ application.id }}</small></span></div></td>
+                <td *ngIf="isAdmin">{{ application.applicantName }}<small class="applicant-email">{{ application.applicantEmail }}</small></td>
+                <td>{{ application.createdAt | date:'d MMM y':'':'es' }}</td>
+                <td class="amount-cell">{{ application.amount | currency:'EUR':'symbol':'1.0-0' }}</td>
+                <td>{{ application.termMonths }} meses</td>
+                <td><span class="status-pill" [ngClass]="statusClass(application.status)"><span></span>{{ statusLabel(application.status) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noApplications>
+          <div class="empty-state" *ngIf="!loadingApplications">
+            <span class="empty-illustration">▤</span><h3>Aún no hay solicitudes</h3>
+            <p>{{ isAdmin ? 'Las solicitudes aparecerán aquí.' : 'Cuando envíes una, podrás seguir su estado en esta sección.' }}</p>
+            <button *ngIf="!isAdmin" class="outline-button" type="button" (click)="setView('new')">Crear solicitud <span>→</span></button>
+          </div>
+        </ng-template>
+      </section>
+      <div class="toast" *ngIf="notice" role="status"><span>✓</span>{{ notice }}</div>
+    </div>
+  </main>
+</div>

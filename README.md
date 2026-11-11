@@ -1,27 +1,32 @@
-# LoansFe
+# Frontend de préstamos
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.1.0.
+Aplicación Angular para registrar usuarios, enviar solicitudes de préstamo y consultar su estado. Las cuentas administradoras pueden revisar, aprobar o rechazar solicitudes.
 
-## Development server
+## Desarrollo local
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+El API debe estar disponible en `http://localhost:8080`.
 
-## Code scaffolding
+```powershell
+npm install
+npm start
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Abre `http://localhost:4200`. Los usuarios pueden crear su cuenta desde la pantalla de inicio. El acceso de administrador se configura en el API.
 
-## Build
+## Integración con el API
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+El módulo de préstamos consume:
 
-## Running unit tests
+- `GET` y `POST /api/loans` para consultar y crear solicitudes.
+- `GET /api/admin/loans` para listar solicitudes como administrador.
+- `PATCH /api/admin/loans/{id}/status` para aprobar o rechazar solicitudes.
+- `POST /api/auth/login` y `POST /api/auth/register` para autenticación.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+El token JWT se envía en las peticiones protegidas. La autorización del lado del API sigue siendo obligatoria; las guardas del frontend solo controlan el acceso a las vistas.
 
-## Running end-to-end tests
+## Validación
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+```powershell
+npm run build
+npm test
+```
